@@ -56,13 +56,6 @@ playbackSlider.oninput = function () {
     changeRate(playbackSlider.value);
 };
 
-// loopStart.oninput = function() {
-//     setLoopStart(loopStart.value);
-// };
-
-// loopEnd.oninput = function() {
-//     setLoopEnd(loopEnd.value);
-// };
 
 // function to load sounds via AJAX
 function loadSound(url) {
@@ -109,8 +102,6 @@ function setupSound() {
 }
 
 
-
-
 // play sound and enable / disable buttons
 function playSound() {
     setupSound();
@@ -140,14 +131,21 @@ function UI(state){
             playButton.disabled = true;
             stopButton.disabled = false;
             playbackSlider.disabled = false;
+            filterFreqSlider.disabled = false;
+            filterQSlider.disabled = false;
+            filterGainSlider.disabled = false;
             break;
         case 'stop':
             playButton.disabled = false;
             stopButton.disabled = true;
             playbackSlider.disabled = true;
+            filterFreqSlider.disabled = true;
+            filterQSlider.disabled = true;
+            filterGainSlider.disabled = true;
             break;
     }
 }
+
 
 //ADD FILTERS
 
