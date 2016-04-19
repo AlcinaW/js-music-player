@@ -9,12 +9,15 @@
 
 // initializing a new context
 //To-do: use below two var to create visualization (MDN example link version)
-var source;
-var stream;
+
 
 // LOADING AUDIO ONLY
+//To-DO: change to camelcase, for UI buttons maybe rewrite
 var audioContext = new(window.AudioContext || window.webkitAudioContext)(),
     filter = audioContext.createBiquadFilter(),
+    
+    //convolver = audioContext.createConvolver(),
+
     sampleURL = '../media/The_Voyage.mp3',
     sampleBuffer, sound, playButton = document.querySelector('.play'),
     stopButton = document.querySelector('.stop'),
