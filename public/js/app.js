@@ -19,7 +19,6 @@ var audioContext = new(window.AudioContext || window.webkitAudioContext)(),
     sampleBuffer, sound, playButton = document.querySelector('.play'),
     stopButton = document.querySelector('.stop'),
     loop = true,
-    //loopButton = document.querySelector('.loop'),
     playbackSlider = document.querySelector('.playback-slider'),
     playbackRate = document.querySelector('.rate'),
 
@@ -33,7 +32,7 @@ var audioContext = new(window.AudioContext || window.webkitAudioContext)(),
     filterGain = document.querySelector('.filter-gain-value'),
     filterGainSlider = document.querySelector('.filter-gain-slider');
 
-// load our sound
+// load sound
 init();
 
 function init() {
@@ -47,10 +46,6 @@ playButton.onclick = function () {
 stopButton.onclick = function () {
     stopSound();
 };
-
-// loopButton.onclick = function (event) {
-//     loopOn(event);
-// };
 
 playbackSlider.oninput = function () {
     changeRate(playbackSlider.value);
@@ -67,8 +62,6 @@ function loadSound(url) {
         audioContext.decodeAudioData(request.response, function (buffer) {
             var soundLength = buffer.duration;
             sampleBuffer = buffer;
-            //loopStart.setAttribute('max', Math.floor(soundLength));
-            //loopEnd.setAttribute('max', Math.floor(soundLength));
             playButton.disabled = false;
             playButton.innerHTML = 'play';
         });
@@ -101,7 +94,6 @@ function setupSound() {
     filter.connect(audioContext.destination);
 }
 
-
 // play sound and enable / disable buttons
 function playSound() {
     setupSound();
@@ -123,7 +115,6 @@ function changeRate(rate) {
     playbackRate.innerHTML = rate;
     console.log(rate);
 }
-
 
 function UI(state){
     switch(state){
@@ -148,7 +139,7 @@ function UI(state){
 
 
 //ADD FILTERS
-
+//can use onmousedown or onmousemove
 filterType.oninput = function () {
     changeFilterType(filterType.value);
 };
@@ -164,8 +155,6 @@ filterQSlider.oninput = function () {
 filterGainSlider.oninput = function () {
     changeFilterGain(event.target.value);
 };
-
-
 
 // change filter type and enable / disable controls depending on filter type
 function changeFilterType(type) {
