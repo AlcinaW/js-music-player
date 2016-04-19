@@ -1,293 +1,161 @@
-//Note: run with python -m SimpleHTTPServer to test
+//Note: run with python -m SimpleHTTPServer to test, not from file, or else won't work
 
 //Would it be better to npm the packages for ToneJS in and configure the package.json, 
 // or just CDN, or leave files as is
 
 
 //loading file with XMLHttpRequest
-//to-do: what to do about more than one piece
-//to-do: re-add sliders
+//to-do: what to do about more than one piece of audio
 
-//button text swaps when pressed
-var playButton = document.getElementById("playPauseButton");
-
-function swapText() {
-    if (playButton.value === "Play") {
-      playButton.value = "Pause";
-    }
-    else {
-      playButton.value = "Play";
-    }
-}
-
-// LOADING AUDIO ONLY
-//in case not Chrome 
-//var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 // initializing a new context
-
-var context = new (window.AudioContext || window.webkitAudioContext)();
+//To-do: use below two var to create visualization (MDN example link version)
 var source;
 var stream;
 
-// setTimeout fallback
-window.requestAnimFrame = (function(){
-return  window.requestAnimationFrame       || 
-  window.webkitRequestAnimationFrame || 
-  window.mozRequestAnimationFrame    || 
-  window.oRequestAnimationFrame      || 
-  window.msRequestAnimationFrame     || 
-  function( callback ){
-  window.setTimeout(callback, 1000 / 60);
-};
-})();
+// LOADING AUDIO ONLY
 
+var audioContext = new(window.AudioContext || window.webkitAudioContext)(),
+    sampleURL = './media/The_Voyage.mp3',
+    sampleBuffer, sound, playButton = document.querySelector('.play'),
+    stopButton = document.querySelector('.stop'),
+    loop = true,
+    loopButton = document.querySelector('.loop'),
+    //loopStart = document.querySelector('.loop-start'),
+    //loopEnd = document.querySelector('.loop-end'),
+    playbackSlider = document.querySelector('.playback-slider'),
+    playbackRate = document.querySelector('.rate');
 
-function playSound(buffer, time) {
-  var source = context.createBufferSource();
-  source.buffer = buffer;
-  source.connect(context.destination);
-  source.start(time);
+// load our sound
+init();
+
+function init() {
+    loadSound(sampleURL);
 }
 
-function loadSounds(obj, soundMap, callback) {
-  // Array-ify
-  var names = [];
-  var paths = [];
-  for (var name in soundMap) {
-    var path = soundMap[name];
-    names.push(name);
-    paths.push(path);
-  }
-  bufferLoader = new BufferLoader(context, paths, function(bufferList) {
-    for (var i = 0; i < bufferList.length; i++) {
-      var buffer = bufferList[i];
-      var name = names[i];
-      obj[name] = buffer;
-    }
-    if (callback) {
-      callback();
-    }
-  });
-  bufferLoader.load();
-}
-
-function BufferLoader(context, urlList, callback) {
-  this.context = context;
-  this.urlList = urlList;
-  this.onload = callback;
-  this.bufferList = new Array();
-  this.loadCount = 0;
-}
-
-BufferLoader.prototype.loadBuffer = function(url, index) {
-  // Load buffer asynchronously
-  var request = new XMLHttpRequest();
-  request.open("GET", url, true);
-  request.responseType = "arraybuffer";
-
-  var loader = this;
-
-  request.onload = function() {
-    // Asynchronously decode the audio file data in request.response
-    loader.context.decodeAudioData(
-      request.response,
-      function(buffer) {
-        if (!buffer) {
-          alert('error decoding file data: ' + url);
-          return;
-        }
-        loader.bufferList[index] = buffer;
-        if (++loader.loadCount == loader.urlList.length)
-          loader.onload(loader.bufferList);
-      },
-      function(error) {
-        console.error('decodeAudioData error', error);
-      }
-    );
-  }
-
-  request.onerror = function() {
-    alert('BufferLoader: XHR error');
-  }
-
-  request.send();
+playButton.onclick = function () {
+    playSound();
 };
 
-BufferLoader.prototype.load = function() {
-  for (var i = 0; i < this.urlList.length; ++i)
-  this.loadBuffer(this.urlList[i], i);
+stopButton.onclick = function () {
+    stopSound();
 };
 
-// MANIPULATE WITH FILTER
-var QUAL_MUL = 35;
-
-function FilterSample() {
-  this.isPlaying = false;
-  loadSounds(this, {buffer: 'media/The_Voyage.mp3'});
-};
-
-FilterSample.prototype.play = function() {
-  // Create the source
-  var source = context.createBufferSource();
-  source.buffer = this.buffer;
-  // Create the filter
-  var filter = context.createBiquadFilter();
-  filter.type = filter.LOWPASS;
-  filter.frequency.value = 5000;
-  // Connect source to filter, filter to destination
-  source.connect(filter);
-  filter.connect(context.destination);
-  // Play
-  source.start(0);
-  source.loop = true;
-  // Save source and filterNode for later access
-  this.source = source;
-  this.filter = filter;
-};
-
-FilterSample.prototype.stop = function() {
-  this.source.stop(0);
-};
-
-FilterSample.prototype.toggle = function() {
-  this.isPlaying ? this.stop() : this.play();
-  this.isPlaying = !this.isPlaying;
-};
-
-FilterSample.prototype.changeFrequency = function(element) {
-  // Clamp the frequency between the minimum value (40 Hz) and half of the
-  // sampling rate.
-  var minValue = 40;
-  var maxValue = context.sampleRate / 2;
-  // Logarithm (base 2) to compute how many octaves fall in the range.
-  var numberOfOctaves = Math.log(maxValue / minValue) / Math.LN2;
-  // Compute a multiplier from 0 to 1 based on an exponential scale.
-  var multiplier = Math.pow(2, numberOfOctaves * (element.value - 1.0));
-  // Get back to the frequency value between min and max.
-  this.filter.frequency.value = maxValue * multiplier;
-};
-
-FilterSample.prototype.changeQuality = function(element) {
-  this.filter.Q.value = element.value * QUAL_MUL;
-};
-
-// FilterSample.prototype.toggleFilter = function(element) {
-//   this.source.disconnect(0);
-//   this.filter.disconnect(0);
-//   // Check if we want to enable the filter.
-//   if (element.checked) {
-//     // Connect through the filter.
-//     this.source.connect(this.filter);
-//     this.filter.connect(context.destination);
-//   } else {
-//     // Otherwise, connect directly.
-//     this.source.connect(context.destination);
-//   }
+// loopButton.onclick = function (event) {
+//     loopOn(event);
 // };
 
+playbackSlider.oninput = function () {
+    changeRate(playbackSlider.value);
+};
 
+// loopStart.oninput = function() {
+//     setLoopStart(loopStart.value);
+// };
 
-var WIDTH = 640;
-var HEIGHT = 360;
+// loopEnd.oninput = function() {
+//     setLoopEnd(loopEnd.value);
+// };
 
-// Interesting parameters to tweak!
-var SMOOTHING = 0.8;
-var FFT_SIZE = 2048;
+// function to load sounds via AJAX
+function loadSound(url) {
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
 
-function VisualizerSample() {
-  this.analyser = context.createAnalyser();
+    request.onload = function () {
+        audioContext.decodeAudioData(request.response, function (buffer) {
+            var soundLength = buffer.duration;
+            sampleBuffer = buffer;
+            //loopStart.setAttribute('max', Math.floor(soundLength));
+            //loopEnd.setAttribute('max', Math.floor(soundLength));
+            playButton.disabled = false;
+            playButton.innerHTML = 'play';
+        });
+    };
 
-  this.analyser.connect(context.destination);
-  this.analyser.minDecibels = -140;
-  this.analyser.maxDecibels = 0;
-  loadSounds(this, {
-    buffer: 'chrono.mp3'
-    //buffer: 'sound.wav'
-  });
-  this.freqs = new Uint8Array(this.analyser.frequencyBinCount);
-  this.times = new Uint8Array(this.analyser.frequencyBinCount);
-
-  this.isPlaying = false;
-  this.startTime = 0;
-  this.startOffset = 0;
+    request.send();
 }
 
-// Toggle playback
-VisualizerSample.prototype.togglePlayback = function() {
-  if (this.isPlaying) {
-    // Stop playback
-    this.source.noteOff(0);
-    this.startOffset += context.currentTime - this.startTime;
-    console.log('paused at', this.startOffset);
-    // Save the position of the play head.
-  } else {
-    this.startTime = context.currentTime;
-    console.log('started at', this.startOffset);
-    this.source = context.createBufferSource();
-    // Connect graph
-    this.source.connect(this.analyser);
-    this.source.buffer = this.buffer;
-    this.source.loop = true;
-    // Start playback, but make sure we stay in bound of the buffer.
-    this.source.start(0, this.startOffset % this.buffer.duration);
-    // Start visualizer.
-    requestAnimFrame(this.draw.bind(this));
-  }
-  this.isPlaying = !this.isPlaying;
+// set our sound buffer, loop, and connect to destination
+function setupSound() {
+    sound = audioContext.createBufferSource();
+    sound.buffer = sampleBuffer;
+    sound.loop = loop; //auto is false
+    //sound.loopStart = loopStart.value;
+    //sound.loopEnd = loopEnd.value;
+    //sound.detune.value = -1000;
+    sound.playbackRate.value = playbackSlider.value;
+    sound.connect(audioContext.destination);
 }
 
-
-VisualizerSample.prototype.draw = function() {
-  this.analyser.smoothingTimeConstant = SMOOTHING;
-  this.analyser.fftSize = FFT_SIZE;
-
-  // Get the frequency data from the currently playing music
-  this.analyser.getByteFrequencyData(this.freqs);
-  this.analyser.getByteTimeDomainData(this.times);
-
-  var width = Math.floor(1/this.freqs.length, 10);
-
-  var canvas = document.querySelector('canvas');
-  var drawContext = canvas.getContext('2d');
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
-  // Draw the frequency domain chart.
-  for (var i = 0; i < this.analyser.frequencyBinCount; i++) {
-    var value = this.freqs[i];
-    var percent = value / 256;
-    var height = HEIGHT * percent;
-    var offset = HEIGHT - height - 1;
-    var barWidth = WIDTH/this.analyser.frequencyBinCount;
-    var hue = i/this.analyser.frequencyBinCount * 360;
-    drawContext.fillStyle = 'hsl(' + hue + ', 100%, 50%)';
-    drawContext.fillRect(i * barWidth, offset, barWidth, height);
-  }
-
-  // Draw the time domain chart.
-  for (var i = 0; i < this.analyser.frequencyBinCount; i++) {
-    var value = this.times[i];
-    var percent = value / 256;
-    var height = HEIGHT * percent;
-    var offset = HEIGHT - height - 1;
-    var barWidth = WIDTH/this.analyser.frequencyBinCount;
-    drawContext.fillStyle = 'white';
-    drawContext.fillRect(i * barWidth, offset, 1, 2);
-  }
-
-  if (this.isPlaying) {
-    requestAnimFrame(this.draw.bind(this));
-  }
+// play sound and enable / disable buttons
+function playSound() {
+    setupSound();
+    UI('play');
+    sound.start(0);
+    sound.onended = function () {
+        UI('stop');
+    }
+}
+// stop sound and enable / disable buttons
+function stopSound() {
+    UI('stop');
+    sound.stop(0);
 }
 
-VisualizerSample.prototype.getFrequencyValue = function(freq) {
-  var nyquist = context.sampleRate/2;
-  var index = Math.round(freq/nyquist * this.freqs.length);
-  return this.freqs[index];
+// change playback speed/rate
+function changeRate(rate) {
+    sound.playbackRate.value = rate;
+    playbackRate.innerHTML = rate;
+    console.log(rate);
 }
 
+// function loopOn(event){
+//     loop = event.target.checked;
+//     if(sound){ // sound needs to be set before setting loop points
+//         if(loop){
+//             loopStart.disabled = false;
+//             loopEnd.disabled = false;
+//         } else {
+//             loopStart.disabled = true;
+//             loopEnd.disabled = true;   
+//         }
+//     } else {
+//         console.log('press play first and then set loop');   
+//     }
+// }
 
+// change loopStart
+// function setLoopStart(start) {
+//     sound.loopStart = start;
+// }
 
+// change loopEnd
+// function setLoopEnd(end) {
+//     sound.loopEnd = end;
+// }
 
+function UI(state){
+    switch(state){
+        case 'play':
+            playButton.disabled = true;
+            stopButton.disabled = false;
+            playbackSlider.disabled = false;
+            break;
+        case 'stop':
+            playButton.disabled = false;
+            stopButton.disabled = true;
+            playbackSlider.disabled = true;
+            break;
+    }
+}
 
-var sample = new FilterSample();
-
+/* ios enable sound output */
+  window.addEventListener('touchstart', function(){
+    //create empty buffer
+    var buffer = audioContext.createBuffer(1, 1, 22050);
+    var source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+  }, false);
