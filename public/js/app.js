@@ -13,17 +13,25 @@ var source;
 var stream;
 
 // LOADING AUDIO ONLY
-
 var audioContext = new(window.AudioContext || window.webkitAudioContext)(),
-    sampleURL = './media/The_Voyage.mp3',
+    filter = audioContext.createBiquadFilter(),
+    sampleURL = '../media/The_Voyage.mp3',
     sampleBuffer, sound, playButton = document.querySelector('.play'),
     stopButton = document.querySelector('.stop'),
     loop = true,
-    loopButton = document.querySelector('.loop'),
-    //loopStart = document.querySelector('.loop-start'),
-    //loopEnd = document.querySelector('.loop-end'),
+    //loopButton = document.querySelector('.loop'),
     playbackSlider = document.querySelector('.playback-slider'),
-    playbackRate = document.querySelector('.rate');
+    playbackRate = document.querySelector('.rate'),
+
+    filterType = document.querySelector('.filtertype'),
+    filterFreq = document.querySelector('.freq'),
+    filterFreqSlider = document.querySelector('.filter-slider'),
+
+    filterQ = document.querySelector('.filter-q-value'),
+    filterQSlider = document.querySelector('.filter-q-slider'),
+
+    filterGain = document.querySelector('.filter-gain-value'),
+    filterGainSlider = document.querySelector('.filter-gain-slider');
 
 // load our sound
 init();
@@ -85,8 +93,23 @@ function setupSound() {
     //sound.loopEnd = loopEnd.value;
     //sound.detune.value = -1000;
     sound.playbackRate.value = playbackSlider.value;
-    sound.connect(audioContext.destination);
+    //sound.connect(audioContext.destination);
+
+    sound.connect(filter); //can connect more than one to a node?
+    filter.connect(audioContext.destination);
 }
+
+// setup sound, loop, and connect to destination
+function setupSound() {
+    sound = audioContext.createBufferSource();
+    sound.buffer = sampleBuffer;
+    sound.loop = loop;
+    sound.connect(filter);
+    filter.connect(audioContext.destination);
+}
+
+
+
 
 // play sound and enable / disable buttons
 function playSound() {
@@ -110,30 +133,6 @@ function changeRate(rate) {
     console.log(rate);
 }
 
-// function loopOn(event){
-//     loop = event.target.checked;
-//     if(sound){ // sound needs to be set before setting loop points
-//         if(loop){
-//             loopStart.disabled = false;
-//             loopEnd.disabled = false;
-//         } else {
-//             loopStart.disabled = true;
-//             loopEnd.disabled = true;   
-//         }
-//     } else {
-//         console.log('press play first and then set loop');   
-//     }
-// }
-
-// change loopStart
-// function setLoopStart(start) {
-//     sound.loopStart = start;
-// }
-
-// change loopEnd
-// function setLoopEnd(end) {
-//     sound.loopEnd = end;
-// }
 
 function UI(state){
     switch(state){
@@ -150,12 +149,65 @@ function UI(state){
     }
 }
 
-/* ios enable sound output */
-  window.addEventListener('touchstart', function(){
-    //create empty buffer
-    var buffer = audioContext.createBuffer(1, 1, 22050);
-    var source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-  }, false);
+//ADD FILTERS
+
+filterType.oninput = function () {
+    changeFilterType(filterType.value);
+};
+
+filterFreqSlider.oninput = function () {
+    changeFilterFreq(filterFreqSlider.value);
+};
+
+filterQSlider.oninput = function () {
+    changeFilterQ(filterQSlider.value);
+};
+
+filterGainSlider.oninput = function () {
+    changeFilterGain(event.target.value);
+};
+
+
+
+// change filter type and enable / disable controls depending on filter type
+function changeFilterType(type) {
+    filter.type = type;
+    switch (type) {
+        case 'peaking':
+            filterQSlider.disabled = false;
+            filterGainSlider.disabled = false;
+            break;
+        case 'lowpass':
+        case 'highpass':
+        case 'bandpass':
+        case 'notch':
+        case 'allpass':
+            filterGainSlider.disabled = true;
+            filterQSlider.disabled = false;
+            break;
+        case 'lowshelf':
+        case 'highshelf':
+            filterGainSlider.disabled = false;
+            filterQSlider.disabled = true;
+            break;
+    }
+}
+
+// change filter frequency and update display 
+function changeFilterFreq(freq) {
+    filter.frequency.value = freq;
+    filterFreq.innerHTML = freq + 'Hz';
+}
+
+// change filter Q and update display
+function changeFilterQ(Q) {
+    filter.Q.value = Q;
+    filterQ.innerHTML = Q;
+}
+
+// change filter Gain and update display
+function changeFilterGain(gain) {
+    filter.gain.value = gain;
+    filterGain.innerHTML = gain + 'dB';
+}
+
