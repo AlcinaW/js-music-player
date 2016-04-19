@@ -75,9 +75,6 @@ function setupSound() {
     sound = audioContext.createBufferSource();
     sound.buffer = sampleBuffer;
     sound.loop = loop; //auto is false
-    //sound.loopStart = loopStart.value;
-    //sound.loopEnd = loopEnd.value;
-    //sound.detune.value = -1000;
     sound.playbackRate.value = playbackSlider.value;
     //sound.connect(audioContext.destination);
 
@@ -198,3 +195,4 @@ function changeFilterGain(gain) {
     filterGain.innerHTML = gain + 'dB';
 }
 
+//START VISUALIZATION
