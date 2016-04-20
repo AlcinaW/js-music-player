@@ -2,3 +2,9 @@ body {
 	font-size: 18px
 	margin: 0px;
 }
+
+canvas {
+	border: 1px solid black;
+	height: 300px;
+	width: 500px;
+}
